@@ -106,15 +106,15 @@ ORDER BY (root, bucket, key, version_id)
 
 	ctx := context.Background()
 	eg, ctx := errgroup.WithContext(ctx)
-	maxDelete := 1_000_000
+	const maxDelete = 1_000_000 // when changing this, must also change insertTotal
 	deleteQueue := make(chan [2]string, maxDelete)
 
 	const root = `root1`
 	const bucket = `bucket1`
 
 	// do parallel insert
-	const insertThread = 8 // assume 8 instance inserting altogether
-	const insertTotal = 20_000_000
+	const insertThread = 8         // assume 8 instance inserting altogether
+	const insertTotal = 20_000_000 // when changing this, must also change maxDelete
 	const randomInsertEvery = 2000
 	const insertUseAsync = false
 	deleteChance := float32(maxDelete) / insertTotal
@@ -237,9 +237,6 @@ DELETE FROM ver3 WHERE root=? AND bucket=? AND key=? AND version_id=?
 		},
 		func() string {
 			return `Veeam/Archive/Backups/` + HEX32(0) + `/` + HEX32(1) + `/blocks`
-		},
-		func() string {
-			return `Veeam/Archive/Backups/` + HEX32(0)
 		},
 		func() string {
 			return `Veeam/Archive/Backups/` + HEX32(0) + `/` + HEX32(1) + `/checkpoints`

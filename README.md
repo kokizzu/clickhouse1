@@ -1,6 +1,6 @@
 # Testing Clickhouse Async Insert
 
-Testing clickhouse [async insert](https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts) wait vs no wait vs multithread [ch-timed-buffer](//github.com/kokizzu/ch-timed-buffer) vs single thread ch-timed-buffer
+Testing clickhouse [async insert](https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts) wait vs no wait vs multithread [ch-timed-buffer](//github.com/kokizzu/ch-timed-buffer) vs single thread ch-timed-buffer, also check how fast [lighweight delete](//clickhouse.com/docs/en/guides/developer/lightweght-delete) are (it's slow, can only get 20 rps).
 
 ## Result:
 
