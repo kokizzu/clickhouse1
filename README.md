@@ -1,6 +1,6 @@
-# Testing Clickhouse async insert
+# Testing Clickhouse Async Insert
 
-Testing clickhouse async insert:
+Testing clickhouse [async insert](https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts) wait vs no wait vs multithread [ch-timed-buffer](//github.com/kokizzu/ch-timed-buffer) vs single thread ch-timed-buffer
 
 ## Result:
 
