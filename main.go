@@ -224,7 +224,7 @@ DELETE FROM ver3 WHERE root=? AND bucket=? AND key=? AND version_id=?
 		})
 	}
 
-	// do listing query
+	// do LIST query
 	_ = []func() string{ // frequency
 		func() string {
 			return `Veeam/Archive/Backups/` + HEX32(0) + `/` + HEX32(1) + `/blocks/` + HEX32e(0) + `/` + INT3() + `/` + HEX32e(1)
@@ -288,7 +288,7 @@ DELETE FROM ver3 WHERE root=? AND bucket=? AND key=? AND version_id=?
 	for z := 0; z < listingThread; z++ {
 		thread := z
 		eg.Go(func() error {
-			defer fmt.Println(`listing thread done`, thread)
+			defer fmt.Println(`LIST thread done`, thread)
 			time.Sleep(time.Second)
 			patterns := [maxRandomPattern]string{`Veeam`}
 			for z := 0; z < listingTotal/listingThread; z++ {
@@ -345,7 +345,7 @@ LIMIT 1001
 		for {
 			select {
 			case <-ticker.C:
-				fmt.Printf("inserted %d (%.1f/s), deleted %d (%.1f/s), listing %d (%.1f/s), listing rows %d (high=%d), ERR: %d/%d/%d, %d sec\n",
+				fmt.Printf("INS %d (%.1f/s), DEL %d (%.1f/s), LIST %d (%.1f/s), ROWS %d (high=%d), ERR: %d/%d/%d, %d sec\n",
 					insertDone,
 					float64(insertDone)/(float64(insertDur)/microSec2sec),
 					deleteDone,
