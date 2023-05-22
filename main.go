@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"database/sql"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -11,8 +10,7 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	chBuffer "github.com/kokizzu/ch-timed-buffer"
-	"github.com/kokizzu/gotro/D/Ch"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/kokizzu/gotro/L"
 	"github.com/kokizzu/gotro/S"
 	"golang.org/x/sync/errgroup"
@@ -29,7 +27,7 @@ type ClickhouseConf struct {
 	UseSsl bool
 }
 
-func (c ClickhouseConf) Connect() (a *Ch.Adapter, err error) {
+func (c ClickhouseConf) Connect() (a driver.Conn, err error) {
 	hostPort := fmt.Sprintf("%s:%d", c.Host, c.Port)
 	conf := &clickhouse.Options{
 		Addr: []string{hostPort},
@@ -48,6 +46,8 @@ func (c ClickhouseConf) Connect() (a *Ch.Adapter, err error) {
 		Compression: &clickhouse.Compression{
 			Method: clickhouse.CompressionLZ4,
 		},
+		MaxOpenConns: 200,
+		MaxIdleConns: 5,
 		//Debug: true,
 	}
 	if c.UseSsl {
@@ -55,26 +55,21 @@ func (c ClickhouseConf) Connect() (a *Ch.Adapter, err error) {
 			InsecureSkipVerify: true,
 		}
 	}
-	connectFunc := func() *sql.DB {
-		conn := clickhouse.OpenDB(conf)
-		conn.SetMaxIdleConns(5)
-		conn.SetMaxOpenConns(200)
-		conn.SetConnMaxLifetime(time.Hour)
+	connectFunc := func() driver.Conn {
+		conn, err := clickhouse.Open(conf)
+		L.IsError(err, `clickhouse.Open`)
 		return conn
 	}
 	conn := connectFunc()
-	err = conn.Ping()
+	err = conn.Ping(context.Background())
 	if isError(err) {
 		return nil, err
 	}
-	a = &Ch.Adapter{
-		DB:        conn,
-		Reconnect: connectFunc,
-	}
-	return a, nil
+	return conn, nil
 
 }
 func main() {
+	ctx := context.Background()
 
 	const createTable = `
 CREATE TABLE IF NOT EXISTS ver3(
@@ -96,15 +91,14 @@ ORDER BY (root, bucket, key, version_id)
 	L.PanicIf(err, `cc.Connect`)
 
 	// create table
-	_, err = ch.Exec(createTable)
+	err = ch.Exec(ctx, createTable)
 	L.PanicIf(err, `table creation`)
 
 	// truncate table
 	const truncateTable = `TRUNCATE TABLE ver3`
-	_, err = ch.Exec(truncateTable)
+	err = ch.Exec(ctx, truncateTable)
 	L.PanicIf(err, `table truncation`)
 
-	ctx := context.Background()
 	eg, ctx := errgroup.WithContext(ctx)
 	const maxDelete = 1_000_000 // when changing this, must also change insertTotal
 	deleteQueue := make(chan [2]string, maxDelete)
@@ -116,7 +110,7 @@ ORDER BY (root, bucket, key, version_id)
 	const insertThread = 8         // assume 8 instance inserting altogether
 	const insertTotal = 20_000_000 // when changing this, must also change maxDelete
 	const randomInsertEvery = 2000
-	const insertUseAsync = false
+	const useDriverAsync = true
 	deleteChance := float32(maxDelete) / insertTotal
 	insertErr := uint64(0)
 	insertThreadDone := uint32(0)
@@ -145,18 +139,7 @@ ORDER BY (root, bucket, key, version_id)
 		thread := z
 		eg.Go(func() error {
 			defer fmt.Println(`insert thread done`, thread)
-			var timedBuffer *chBuffer.TimedBuffer
-			if !insertUseAsync {
-				const insertEvery = 40_000
-				timedBuffer = chBuffer.NewTimedBuffer(ch.DB, insertEvery, 1*time.Second, func(tx *sql.Tx) *sql.Stmt {
-					const insertQuery = `
-INSERT INTO ver3 VALUES(?, ?, ?, ?, ?)
-`
-					stmt, err := tx.Prepare(insertQuery)
-					L.IsError(err, `failed to tx.Prepare: `+insertQuery)
-					return stmt
-				})
-			}
+			ctx := clickhouse.Context(context.Background(), clickhouse.WithStdAsync(false))
 			for z := 0; z < insertTotal/insertThread; z++ {
 				atomic.AddUint64(&insertDur, track(func() {
 					var key string
@@ -166,22 +149,22 @@ INSERT INTO ver3 VALUES(?, ?, ?, ?, ?)
 						key = insertPatterns[0]()
 					}
 					verId := S.RandomPassword(24)
-					if insertUseAsync {
+					var err error
+					if useDriverAsync {
+						insertQuery := fmt.Sprintf(`
+INSERT INTO ver3 VALUES ('%s', '%s', '%s', '%s', '%s')
+`, root, bucket, key, verId, time.Now().Format(`2006-01-02 15:04:05.000000`)) // assume no sql injection
+						err = ch.AsyncInsert(ctx, insertQuery, false) // wait = false
+					} else {
 						// slow and high cpu usage, better use ch-timed-buffer, wait_for_async_insert=0 even worse
 						const insertQuery = `
 INSERT INTO ver3 SETTINGS async_insert=1, wait_for_async_insert=1 VALUES (?, ?, ?, ?, ?)
 `
-						_, err := ch.Exec(insertQuery, root, bucket, key, verId, time.Now().Format(`2006-01-02 15:04:05.000000`))
-						if isError(err) {
-							atomic.AddUint64(&insertErr, 1)
-							return
-						}
-					} else {
-						// fast insert but slow to do other queries, also high cpu usage
-						if !timedBuffer.Insert([]any{root, bucket, key, verId, time.Now().Format(`2006-01-02 15:04:05.000000`)}) {
-							atomic.AddUint64(&insertErr, 1)
-							return
-						}
+						err = ch.Exec(ctx, insertQuery, root, bucket, key, verId, time.Now().Format(`2006-01-02 15:04:05.000000`))
+					}
+					if isError(err) {
+						atomic.AddUint64(&insertErr, 1)
+						return
 					}
 					atomic.AddUint64(&insertDone, 1)
 					if rand.Float32() < deleteChance {
@@ -191,9 +174,6 @@ INSERT INTO ver3 SETTINGS async_insert=1, wait_for_async_insert=1 VALUES (?, ?, 
 			}
 			if atomic.AddUint32(&insertThreadDone, 1) == insertThread {
 				close(deleteQueue)
-			}
-			if !insertUseAsync {
-				timedBuffer.Close()
 			}
 			return nil
 		})
@@ -215,7 +195,7 @@ INSERT INTO ver3 SETTINGS async_insert=1, wait_for_async_insert=1 VALUES (?, ?, 
 					const deleteQuery = `
 DELETE FROM ver3 WHERE root=? AND bucket=? AND key=? AND version_id=?
 `
-					_, err := ch.Exec(deleteQuery, root, bucket, key[0], key[1])
+					err := ch.Exec(ctx, deleteQuery, root, bucket, key[0], key[1])
 					if isError(err) {
 						atomic.AddUint64(&deleteErr, 1)
 					}
@@ -307,7 +287,7 @@ GROUP BY 1
 ORDER BY 1 ASC
 LIMIT 1001
 `
-					rows, err := ch.Query(listingQuery,
+					rows, err := ch.Query(ctx, listingQuery,
 						parts, root, bucket, pattern+`%`)
 					if isError(err) {
 						atomic.AddUint64(&listingErr, 1)

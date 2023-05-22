@@ -61,6 +61,34 @@ INS 606024 (74776.2/s), DEL 139 (7.7/s), LIST 1266 (39.7/s), ROWS 5308 (high=100
 INS 658128 (68341.9/s), DEL 141 (7.7/s), LIST 1416 (39.4/s), ROWS 5459 (high=1001), ERR: 0/0/0, 10 sec
 ```
 
+- with driver.Conn `wait = true`
+```
+INS 16 (3.2/s), DEL 1 (79.7/s), LIST 0 (NaN/s), ROWS 0 (high=0), ERR: 0/0/0, 1 sec
+INS 40 (2.7/s), DEL 1 (79.7/s), LIST 1768 (442.7/s), ROWS 1900 (high=20), ERR: 0/0/0, 2 sec
+INS 56 (2.7/s), DEL 1 (79.7/s), LIST 3515 (439.8/s), ROWS 3646 (high=20), ERR: 0/0/0, 3 sec
+INS 80 (2.6/s), DEL 4 (113.1/s), LIST 5234 (436.6/s), ROWS 5365 (high=20), ERR: 0/0/0, 4 sec
+INS 96 (2.6/s), DEL 5 (119.4/s), LIST 6648 (415.8/s), ROWS 6780 (high=20), ERR: 0/0/0, 5 sec
+INS 120 (2.6/s), DEL 6 (123.2/s), LIST 8350 (417.7/s), ROWS 8484 (high=20), ERR: 0/0/0, 6 sec
+INS 136 (2.6/s), DEL 6 (123.2/s), LIST 10052 (419.0/s), ROWS 10183 (high=20), ERR: 0/0/0, 7 sec
+INS 160 (2.6/s), DEL 8 (120.3/s), LIST 11782 (421.0/s), ROWS 11914 (high=20), ERR: 0/0/0, 8 sec
+INS 176 (2.5/s), DEL 10 (21.5/s), LIST 12837 (401.3/s), ROWS 12970 (high=20), ERR: 0/0/0, 9 sec
+INS 200 (2.5/s), DEL 12 (25.1/s), LIST 14560 (404.6/s), ROWS 14692 (high=20), ERR: 0/0/0, 10 sec
+```
+
+- with driver.Conn `wait = false`
+```
+INS 27420 (3434.5/s), DEL 143 (37.5/s), LIST 0 (NaN/s), ROWS 0 (high=0), ERR: 0/0/0, 1 sec
+INS 43631 (2731.5/s), DEL 176 (22.4/s), LIST 336 (84.9/s), ROWS 8358 (high=1001), ERR: 0/0/0, 2 sec
+INS 56265 (2348.1/s), DEL 192 (19.5/s), LIST 608 (76.2/s), ROWS 8630 (high=1001), ERR: 0/0/0, 3 sec
+INS 73072 (2287.0/s), DEL 276 (17.3/s), LIST 942 (78.8/s), ROWS 8964 (high=1001), ERR: 0/0/0, 4 sec
+INS 88179 (2207.0/s), DEL 338 (17.0/s), LIST 1168 (73.2/s), ROWS 9190 (high=1001), ERR: 0/0/0, 5 sec
+INS 100871 (2104.5/s), DEL 395 (17.1/s), LIST 1391 (69.6/s), ROWS 9416 (high=1001), ERR: 0/0/0, 6 sec
+INS 115596 (2067.2/s), DEL 449 (16.1/s), LIST 1667 (69.6/s), ROWS 9689 (high=1001), ERR: 0/0/0, 7 sec
+INS 129851 (2031.8/s), DEL 513 (16.2/s), LIST 1899 (68.0/s), ROWS 9921 (high=1001), ERR: 0/0/0, 8 sec
+INS 141553 (1968.7/s), DEL 569 (15.9/s), LIST 2094 (65.5/s), ROWS 10116 (high=1001), ERR: 0/0/0, 9 sec
+INS 153710 (1923.9/s), DEL 601 (15.1/s), LIST 2278 (63.3/s), ROWS 10300 (high=1001), ERR: 0/0/0, 10 sec
+```
+
 ## Configs
 
 - `insertThread` - number of goroutine to insert
@@ -72,3 +100,4 @@ INS 658128 (68341.9/s), DEL 141 (7.7/s), LIST 1416 (39.4/s), ROWS 5459 (high=100
 - `listingTotal` - number of listing query to perform, will stop 10 sec
 - `stopAnywaySec` - stop anyway after n second all insert done
 - `debug` - throw panic on error
+- `clickhouse.WithStdAsync` if `useDriverAsync` or `wait_for_async_insert`
