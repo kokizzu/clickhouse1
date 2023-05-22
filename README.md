@@ -4,7 +4,7 @@ Testing clickhouse [async insert](https://clickhouse.com/docs/en/cloud/bestpract
 
 ## Result:
 
-- async insert with wait (`wait_for_async_insert=1`):
+- async insert with wait (`insertThread = 8 wait_for_async_insert=1`):
 ```
 INS 16 (2.7/s), DEL 0 (NaN/s), LIST 0 (NaN/s), ROWS 0 (high=0), ERR 0/0/0, 1 sec
 INS 40 (2.6/s), DEL 0 (NaN/s), LIST 1596 (399.9/s), ROWS 1721 (high=12), ERR 0/0/0, 2 sec
@@ -19,7 +19,7 @@ INS 200 (2.5/s), DEL 10 (69.8/s), LIST 15385 (427.5/s), ROWS 15511 (high=12), ER
 ```
 *LIST qps is high because of small data size
 
-- async insert without wait (`wait_for_async_insert=0`): 
+- async insert without wait (`insertThread = 8 wait_for_async_insert=0`): 
 ```
 INS 17717 (2218.3/s), DEL 38 (20.2/s), LIST 0 (NaN/s), ROWS 0 (high=0), ERR 0/0/0, 1 sec
 INS 32110 (2009.9/s), DEL 52 (13.3/s), LIST 368 (93.1/s), ROWS 4384 (high=1001), ERR 0/0/0, 2 sec
@@ -34,7 +34,7 @@ INS 133171 (1673.9/s), DEL 257 (13.0/s), LIST 2203 (61.6/s), ROWS 6219 (high=100
 ```
 *LIST qps is high because of small data size
 
-- manual buffered insert 8 thread (`insertUseAsync = false`):
+- manual buffered insert 8 thread (`insertThread = 8 insertUseAsync = false`):
 ```
 INS 436775 (56429.2/s), DEL 248 (127.7/s), LIST 0 (NaN/s), ROWS 0 (high=0), ERR 0/0/0, 1 sec
 INS 622030 (39842.5/s), DEL 250 (85.5/s), LIST 23 (6.5/s), ROWS 19 (high=1), ERR 0/0/0, 2 sec
@@ -47,7 +47,7 @@ INS 1683076 (26873.8/s), DEL 254 (19.3/s), LIST 200 (7.2/s), ROWS 4214 (high=100
 INS 1838064 (25979.4/s), DEL 256 (14.6/s), LIST 233 (7.3/s), ROWS 4247 (high=1001), ERR 0/0/0, 9 sec
 INS 2021747 (25667.3/s), DEL 256 (14.6/s), LIST 267 (7.4/s), ROWS 4281 (high=1001), ERR 0/0/0, 10 sec
 ```
-- manual buffered insert single thread:
+- manual buffered insert (`insertThread = 1 insertUseAsync = false`):
 ```
 INS 200000 (233092.4/s), DEL 78 (44.7/s), LIST 0 (NaN/s), ROWS 0 (high=0), ERR: 0/0/0, 1 sec
 INS 262577 (140613.1/s), DEL 82 (28.9/s), LIST 64 (16.7/s), ROWS 2083 (high=1001), ERR: 0/0/0, 2 sec
@@ -60,3 +60,15 @@ INS 566021 (77860.3/s), DEL 125 (12.1/s), LIST 1091 (39.0/s), ROWS 5135 (high=10
 INS 606024 (74776.2/s), DEL 139 (7.7/s), LIST 1266 (39.7/s), ROWS 5308 (high=1001), ERR: 0/0/0, 9 sec
 INS 658128 (68341.9/s), DEL 141 (7.7/s), LIST 1416 (39.4/s), ROWS 5459 (high=1001), ERR: 0/0/0, 10 sec
 ```
+
+## Configs
+
+- `insertThread` - number of goroutine to insert
+- `deleteThread` - number of goroutine to delete
+- `insertUseAsync` - use async insert syntax or ch-timed-buffer
+- `maxDelete` - maximum estimated number of record to delete after insert
+- `insertTotal` - total number of record to insert
+- `randomInsertEvery` - insert random pattern every n insert
+- `listingTotal` - number of listing query to perform, will stop 10 sec
+- `stopAnywaySec` - stop anyway after n second all insert done
+- `debug` - throw panic on error

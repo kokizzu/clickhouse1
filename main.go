@@ -201,6 +201,8 @@ INSERT INTO ver3 SETTINGS async_insert=1, wait_for_async_insert=1 VALUES (?, ?, 
 
 	// do parallel deletion
 	const deleteThread = 4
+	const stopAnywaySec = 10
+	exitAfterSec := stopAnywaySec
 	deleteErr := uint64(0)
 	deleteDone := uint64(0)
 	deleteDur := uint64(0)
@@ -219,6 +221,9 @@ DELETE FROM ver3 WHERE root=? AND bucket=? AND key=? AND version_id=?
 					}
 					atomic.AddUint64(&deleteDone, 1)
 				}))
+				if exitAfterSec <= 0 {
+					return nil
+				}
 			}
 			return nil
 		})
@@ -318,13 +323,16 @@ LIMIT 1001
 							return
 						}
 						total++
-						if total < 50 && !S.Contains(str1, `.`) { // most likely a directory
+						if total < maxRandomPattern && !S.Contains(str1, `.`) { // most likely a directory
 							patterns[(z+int(total))%maxRandomPattern] = str1
 						}
 					}
 					atomic.AddUint64(&listingRows, total)
 					if listingHighestRows < total {
 						listingHighestRows = total
+					}
+					if exitAfterSec <= 0 {
+						return
 					}
 				}))
 			}
@@ -338,7 +346,6 @@ LIMIT 1001
 		defer fmt.Println(`stats thread done`)
 		ticker := time.NewTicker(time.Second)
 		sec := 1
-		exitAfterSec := 10
 		for {
 			select {
 			case <-ticker.C:
