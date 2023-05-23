@@ -1,0 +1,41 @@
+CREATE TABLE IF NOT EXISTS ver4
+(
+    `root` LowCardinality(String) CODEC(LZ4HC),
+    `bucket` LowCardinality(String) CODEC(LZ4HC),
+    `key` String CODEC(LZ4HC),
+    `version_id` String CODEC(LZ4HC),
+    `ver` DateTime64 CODEC(LZ4HC),
+    `is_deleted` UInt8 CODEC(LZ4HC)
+)
+ENGINE = ReplacingMergeTree(ver, is_deleted)
+ORDER BY (root, bucket, key, version_id);
+
+INSERT INTO ver4 VALUES('root1', 'bucket1', 'a', 'a', '2023-05-24', 0);
+INSERT INTO ver4 VALUES('root1', 'bucket1', 'a', 'a', '2023-05-24', 1);
+SELECT * FROM ver4;
+┌─root──┬─bucket──┬─key─┬─version_id─┬─────────────────────ver─┬─is_deleted─┐
+│ root1 │ bucket1 │ a   │ a          │ 2023-05-24 00:00:00.000 │          0 │
+└───────┴─────────┴─────┴────────────┴─────────────────────────┴────────────┘
+┌─root──┬─bucket──┬─key─┬─version_id─┬─────────────────────ver─┬─is_deleted─┐
+│ root1 │ bucket1 │ a   │ a          │ 2023-05-24 00:00:00.000 │          1 │
+└───────┴─────────┴─────┴────────────┴─────────────────────────┴────────────┘
+
+ SELECT * FROM ver4 WHERE is_deleted = 0;
+┌─root──┬─bucket──┬─key─┬─version_id─┬─────────────────────ver─┬─is_deleted─┐
+│ root1 │ bucket1 │ a   │ a          │ 2023-05-24 00:00:00.000 │          0 │
+└───────┴─────────┴─────┴────────────┴─────────────────────────┴────────────┘
+
+-- doesn't merge
+SELECT * FROM ver4 FINAL WHERE is_deleted = 0 ;
+SELECT * FROM ver4;
+┌─root──┬─bucket──┬─key─┬─version_id─┬─────────────────────ver─┬─is_deleted─┐
+│ root1 │ bucket1 │ a   │ a          │ 2023-05-24 00:00:00.000 │          0 │
+└───────┴─────────┴─────┴────────────┴─────────────────────────┴────────────┘
+┌─root──┬─bucket──┬─key─┬─version_id─┬─────────────────────ver─┬─is_deleted─┐
+│ root1 │ bucket1 │ a   │ a          │ 2023-05-24 00:00:00.000 │          1 │
+└───────┴─────────┴─────┴────────────┴─────────────────────────┴────────────┘
+
+-- does merge
+SELECT * FROM ver4 FINAL ;
+-- empty
+

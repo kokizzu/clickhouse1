@@ -42,6 +42,10 @@ func (c ClickhouseConf) Connect() (a *Ch.Adapter, err error) {
 			`max_execution_time`:                    60,
 			`allow_experimental_lightweight_delete`: 1,
 			`async_insert`:                          1,
+			//`async_insert_busy_timeout_ms`:          1000,   // 1 sec
+			`async_insert_stale_timeout_ms`: 1000,
+			`async_insert_max_query_number`: 40_000, // 40k block
+
 			//`wait_for_async_insert`:1,
 		},
 		DialTimeout: 5 * time.Second,
@@ -77,13 +81,14 @@ func (c ClickhouseConf) Connect() (a *Ch.Adapter, err error) {
 func main() {
 
 	const createTable = `
-CREATE TABLE IF NOT EXISTS ver3(
+CREATE TABLE IF NOT EXISTS ver4(
     root LowCardinality(String) CODEC(LZ4HC),
     bucket LowCardinality(String) CODEC(LZ4HC),
     key String CODEC(LZ4HC),
     version_id String CODEC(LZ4HC),
-	ver DateTime64 CODEC(LZ4HC)
-) engine=ReplacingMergeTree(ver) 
+	ver DateTime64 CODEC(LZ4HC),
+	is_deleted UInt8 CODEC(LZ4HC)
+) engine=ReplacingMergeTree(ver, is_deleted) 
 ORDER BY (root, bucket, key, version_id)
 `
 
@@ -100,7 +105,7 @@ ORDER BY (root, bucket, key, version_id)
 	L.PanicIf(err, `table creation`)
 
 	// truncate table
-	const truncateTable = `TRUNCATE TABLE ver3`
+	const truncateTable = `TRUNCATE TABLE ver4`
 	_, err = ch.Exec(truncateTable)
 	L.PanicIf(err, `table truncation`)
 
@@ -141,22 +146,22 @@ ORDER BY (root, bucket, key, version_id)
 		},
 	}
 
+	var timedBuffer *chBuffer.TimedBuffer
+	if !insertUseAsync {
+		const insertEvery = 40_000
+		timedBuffer = chBuffer.NewTimedBuffer(ch.DB, insertEvery, 1*time.Second, func(tx *sql.Tx) *sql.Stmt {
+			const insertQuery = `
+INSERT INTO ver4 VALUES(?, ?, ?, ?, ?, ?)
+`
+			stmt, err := tx.Prepare(insertQuery)
+			L.IsError(err, `failed to tx.Prepare: `+insertQuery)
+			return stmt
+		})
+	}
 	for z := 0; z < insertThread; z++ {
 		thread := z
 		eg.Go(func() error {
 			defer fmt.Println(`insert thread done`, thread)
-			var timedBuffer *chBuffer.TimedBuffer
-			if !insertUseAsync {
-				const insertEvery = 40_000
-				timedBuffer = chBuffer.NewTimedBuffer(ch.DB, insertEvery, 1*time.Second, func(tx *sql.Tx) *sql.Stmt {
-					const insertQuery = `
-INSERT INTO ver3 VALUES(?, ?, ?, ?, ?)
-`
-					stmt, err := tx.Prepare(insertQuery)
-					L.IsError(err, `failed to tx.Prepare: `+insertQuery)
-					return stmt
-				})
-			}
 			for z := 0; z < insertTotal/insertThread; z++ {
 				atomic.AddUint64(&insertDur, track(func() {
 					var key string
@@ -169,7 +174,7 @@ INSERT INTO ver3 VALUES(?, ?, ?, ?, ?)
 					if insertUseAsync {
 						// slow and high cpu usage, better use ch-timed-buffer, wait_for_async_insert=0 even worse
 						const insertQuery = `
-INSERT INTO ver3 SETTINGS async_insert=1, wait_for_async_insert=1 VALUES (?, ?, ?, ?, ?)
+INSERT INTO ver4 SETTINGS async_insert=1, wait_for_async_insert=1 VALUES (?, ?, ?, ?, ?, 0)
 `
 						_, err := ch.Exec(insertQuery, root, bucket, key, verId, time.Now().Format(`2006-01-02 15:04:05.000000`))
 						if isError(err) {
@@ -178,7 +183,7 @@ INSERT INTO ver3 SETTINGS async_insert=1, wait_for_async_insert=1 VALUES (?, ?, 
 						}
 					} else {
 						// fast insert but slow to do other queries, also high cpu usage
-						if !timedBuffer.Insert([]any{root, bucket, key, verId, time.Now().Format(`2006-01-02 15:04:05.000000`)}) {
+						if !timedBuffer.Insert([]any{root, bucket, key, verId, time.Now().Format(`2006-01-02 15:04:05.000000`), uint8(0)}) {
 							atomic.AddUint64(&insertErr, 1)
 							return
 						}
@@ -191,9 +196,6 @@ INSERT INTO ver3 SETTINGS async_insert=1, wait_for_async_insert=1 VALUES (?, ?, 
 			}
 			if atomic.AddUint32(&insertThreadDone, 1) == insertThread {
 				close(deleteQueue)
-			}
-			if !insertUseAsync {
-				timedBuffer.Close()
 			}
 			return nil
 		})
@@ -209,15 +211,23 @@ INSERT INTO ver3 SETTINGS async_insert=1, wait_for_async_insert=1 VALUES (?, ?, 
 	for z := 0; z < deleteThread; z++ {
 		thread := z
 		eg.Go(func() error {
+
 			defer fmt.Println(`delete thread done`, thread)
 			for key := range deleteQueue {
 				atomic.AddUint64(&deleteDur, track(func() {
-					const deleteQuery = `
-DELETE FROM ver3 WHERE root=? AND bucket=? AND key=? AND version_id=?
+					if insertUseAsync {
+						const deleteQuery = `
+DELETE FROM ver4 WHERE root=? AND bucket=? AND key=? AND version_id=?
 `
-					_, err := ch.Exec(deleteQuery, root, bucket, key[0], key[1])
-					if isError(err) {
-						atomic.AddUint64(&deleteErr, 1)
+						_, err := ch.Exec(deleteQuery, root, bucket, key[0], key[1])
+						if isError(err) {
+							atomic.AddUint64(&deleteErr, 1)
+						}
+					} else {
+						if !timedBuffer.Insert([]any{root, bucket, key[0], key[1], time.Now().Format(`2006-01-02 15:04:05.000000`), uint8(1)}) {
+							atomic.AddUint64(&insertErr, 1)
+							return
+						}
 					}
 					atomic.AddUint64(&deleteDone, 1)
 				}))
@@ -299,7 +309,7 @@ DELETE FROM ver3 WHERE root=? AND bucket=? AND key=? AND version_id=?
 					parts := len(strings.Split(pattern, `/`)) + 1
 					const listingQuery = `
 SELECT arrayStringConcat(splitByChar('/', key, ?),'/'), MAX(version_id)
-FROM ver3
+FROM ver4 FINAL
 WHERE root=? 
   AND bucket=? 
   AND key LIKE ?
@@ -366,6 +376,9 @@ LIMIT 1001
 				if insertThreadDone >= insertThread && len(deleteQueue) == 0 {
 					exitAfterSec--
 					if exitAfterSec < 0 {
+						if !insertUseAsync {
+							timedBuffer.Close()
+						}
 						return nil
 					}
 				}
