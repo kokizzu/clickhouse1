@@ -61,6 +61,20 @@ INS 606024 (74776.2/s), DEL 139 (7.7/s), LIST 1266 (39.7/s), ROWS 5308 (high=100
 INS 658128 (68341.9/s), DEL 141 (7.7/s), LIST 1416 (39.4/s), ROWS 5459 (high=1001), ERR: 0/0/0, 10 sec
 ```
 
+- manual buffered insert and using insert and FINAL
+```
+INS 190350 (26272.7/s), DEL 9650 (17331.6/s), LIST 0 (NaN/s), ROWS 0 (high=0), ERR: 0/0/0, 1 sec
+INS 248993 (15707.8/s), DEL 12612 (19995.1/s), LIST 25 (6.9/s), ROWS 1023 (high=1001), ERR: 0/0/0, 2 sec
+INS 319932 (13438.5/s), DEL 16139 (10769.3/s), LIST 64 (8.3/s), ROWS 3077 (high=1001), ERR: 0/0/0, 3 sec
+INS 381250 (12001.2/s), DEL 19243 (12229.0/s), LIST 135 (11.4/s), ROWS 4157 (high=1001), ERR: 0/0/0, 4 sec
+INS 457516 (12111.4/s), DEL 22977 (14331.6/s), LIST 239 (15.0/s), ROWS 5277 (high=1001), ERR: 0/0/0, 5 sec
+INS 571961 (12076.5/s), DEL 28533 (17193.4/s), LIST 337 (16.9/s), ROWS 5375 (high=1001), ERR: 0/0/0, 6 sec
+INS 648152 (12037.2/s), DEL 32342 (18833.9/s), LIST 448 (18.7/s), ROWS 5486 (high=1001), ERR: 0/0/0, 7 sec
+INS 749165 (11789.8/s), DEL 37413 (18412.8/s), LIST 546 (19.6/s), ROWS 5584 (high=1001), ERR: 0/0/0, 8 sec
+INS 825432 (11905.7/s), DEL 41148 (18178.4/s), LIST 672 (21.0/s), ROWS 5711 (high=1001), ERR: 0/0/0, 9 sec
+INS 938205 (11811.2/s), DEL 46630 (17887.1/s), LIST 769 (21.4/s), ROWS 5808 (high=1001), ERR: 0/0/0, 10 sec
+```
+
 ## Configs
 
 - `insertThread` - number of goroutine to insert
@@ -72,3 +86,4 @@ INS 658128 (68341.9/s), DEL 141 (7.7/s), LIST 1416 (39.4/s), ROWS 5459 (high=100
 - `listingTotal` - number of listing query to perform, will stop 10 sec
 - `stopAnywaySec` - stop anyway after n second all insert done
 - `debug` - throw panic on error
+- `clickhouse.WithStdAsync` if `useDriverAsync` or `wait_for_async_insert`
