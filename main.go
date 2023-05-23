@@ -45,6 +45,7 @@ func (c ClickhouseConf) Connect() (a *Ch.Adapter, err error) {
 			//`async_insert_busy_timeout_ms`:          1000,   // 1 sec
 			`async_insert_stale_timeout_ms`: 1000,
 			`async_insert_max_query_number`: 40_000, // 40k block
+			//`max_threads`:                   128,
 
 			//`wait_for_async_insert`:1,
 		},
@@ -148,7 +149,7 @@ ORDER BY (root, bucket, key, version_id)
 
 	var timedBuffer *chBuffer.TimedBuffer
 	if !insertUseAsync {
-		const insertEvery = 40_000
+		const insertEvery = 200_000
 		timedBuffer = chBuffer.NewTimedBuffer(ch.DB, insertEvery, 1*time.Second, func(tx *sql.Tx) *sql.Stmt {
 			const insertQuery = `
 INSERT INTO ver4 VALUES(?, ?, ?, ?, ?, ?)

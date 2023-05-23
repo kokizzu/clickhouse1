@@ -75,6 +75,20 @@ INS 825432 (11905.7/s), DEL 41148 (18178.4/s), LIST 672 (21.0/s), ROWS 5711 (hig
 INS 938205 (11811.2/s), DEL 46630 (17887.1/s), LIST 769 (21.4/s), ROWS 5808 (high=1001), ERR: 0/0/0, 10 sec
 ```
 
+- same as above but 200k buffer
+```
+INS 381003 (60494.5/s), DEL 18997 (3389295.3/s), LIST 0 (NaN/s), ROWS 0 (high=0), ERR: 0/0/0, 1 sec
+INS 403794 (25620.5/s), DEL 20114 (15372.8/s), LIST 1593 (473.0/s), ROWS 4 (high=1), ERR: 0/0/0, 2 sec
+INS 431197 (18239.0/s), DEL 21468 (6024.7/s), LIST 1613 (210.5/s), ROWS 24 (high=1), ERR: 0/0/0, 3 sec
+INS 481545 (15184.0/s), DEL 23898 (3779.8/s), LIST 1636 (138.1/s), ROWS 4049 (high=1001), ERR: 0/0/0, 4 sec
+INS 630076 (15924.0/s), DEL 31368 (4923.5/s), LIST 1778 (111.4/s), ROWS 9198 (high=1001), ERR: 0/0/0, 5 sec
+INS 630076 (15924.0/s), DEL 31368 (4923.5/s), LIST 1990 (99.7/s), ROWS 9410 (high=1001), ERR: 0/0/0, 6 sec
+INS 820431 (15323.8/s), DEL 41016 (6404.4/s), LIST 2143 (89.5/s), ROWS 9563 (high=1001), ERR: 0/0/0, 7 sec
+INS 820431 (15323.8/s), DEL 41016 (6404.4/s), LIST 2305 (82.5/s), ROWS 9725 (high=1001), ERR: 0/0/0, 8 sec
+INS 1010979 (14414.1/s), DEL 50470 (6328.6/s), LIST 2431 (76.1/s), ROWS 9851 (high=1001), ERR: 0/0/0, 9 sec
+INS 1010979 (14414.1/s), DEL 50470 (6328.6/s), LIST 2556 (71.1/s), ROWS 9977 (high=1001), ERR: 0/0/0, 10 sec
+```
+
 ## Configs
 
 - `insertThread` - number of goroutine to insert
