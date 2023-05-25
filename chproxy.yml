@@ -22,7 +22,7 @@ caches:
         dir: /tmp
         max_size: 1GB
     # Expiration time for cached responses.
-    expire: 1s
+    expire: 2s
     # DEPRECATED: default value equal to `max_execution_time` should be used.
     #             New configuration parameter will be provided to disable the protection at will.
     # When multiple requests with identical query simultaneously hit `chproxy`
@@ -33,7 +33,7 @@ caches:
     #
     # By default `grace_time` is 5s. Negative value disables the protection
     # from `thundering herd` problem.
-    grace_time: 1s
+    grace_time: 2s
     # Maximum total size of request payload for caching. The default value
     # is set to 1 Petabyte.
     # The default value set so high is to allow users who do not use response size limitations virtually unlimited cache.
