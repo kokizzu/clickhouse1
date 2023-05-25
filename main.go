@@ -101,6 +101,25 @@ ORDER BY (root, bucket, key, version_id)
 	ch, err := cc.Connect()
 	L.PanicIf(err, `cc.Connect`)
 
+	conn := clickhouse.OpenDB(&clickhouse.Options{
+		Addr: []string{"127.0.0.1:8123"},
+		Auth: clickhouse.Auth{
+			Database: "default",
+			Username: "default",
+			Password: "",
+		},
+		Settings: clickhouse.Settings{
+			"max_execution_time": 60,
+		},
+		DialTimeout: 30 * time.Second,
+		Compression: &clickhouse.Compression{
+			Method: clickhouse.CompressionLZ4,
+		},
+		Protocol: clickhouse.HTTP,
+	})
+	err = conn.Ping()
+	L.PanicIf(err, `conn.Ping`)
+
 	// create table
 	_, err = ch.Exec(createTable)
 	L.PanicIf(err, `table creation`)
@@ -149,7 +168,7 @@ ORDER BY (root, bucket, key, version_id)
 
 	var timedBuffer *chBuffer.TimedBuffer
 	if !insertUseAsync {
-		const insertEvery = 200_000
+		const insertEvery = 40_000
 		timedBuffer = chBuffer.NewTimedBuffer(ch.DB, insertEvery, 1*time.Second, func(tx *sql.Tx) *sql.Stmt {
 			const insertQuery = `
 INSERT INTO ver4 VALUES(?, ?, ?, ?, ?, ?)
@@ -318,7 +337,7 @@ GROUP BY 1
 ORDER BY 1 ASC
 LIMIT 1001
 `
-					rows, err := ch.Query(listingQuery,
+					rows, err := conn.Query(listingQuery,
 						parts, root, bucket, pattern+`%`)
 					if isError(err) {
 						atomic.AddUint64(&listingErr, 1)
