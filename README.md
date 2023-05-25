@@ -89,6 +89,34 @@ INS 1010979 (14414.1/s), DEL 50470 (6328.6/s), LIST 2431 (76.1/s), ROWS 9851 (hi
 INS 1010979 (14414.1/s), DEL 50470 (6328.6/s), LIST 2556 (71.1/s), ROWS 9977 (high=1001), ERR: 0/0/0, 10 sec
 ```
 
+- same as above but using chproxy (http not native protocol) for select queries
+```
+INS 190554 (25950.2/s), DEL 9446 (47594.8/s), LIST 0 (NaN/s), ROWS 0 (high=0), ERR: 0/0/0, 1 sec
+INS 228660 (19223.0/s), DEL 11340 (11868.1/s), LIST 19 (5.2/s), ROWS 1019 (high=1001), ERR: 0/0/0, 2 sec
+INS 304906 (13287.4/s), DEL 15096 (14448.0/s), LIST 49 (6.5/s), ROWS 3057 (high=1001), ERR: 0/0/0, 3 sec
+INS 353932 (11140.0/s), DEL 17509 (16312.6/s), LIST 103 (8.9/s), ROWS 4115 (high=1001), ERR: 0/0/0, 4 sec
+INS 430147 (11007.2/s), DEL 21331 (18163.5/s), LIST 200 (12.7/s), ROWS 7225 (high=1001), ERR: 0/0/0, 5 sec
+INS 506316 (10867.4/s), DEL 25164 (16182.5/s), LIST 316 (15.9/s), ROWS 10350 (high=1001), ERR: 0/0/0, 6 sec
+INS 605750 (10893.6/s), DEL 30182 (19237.8/s), LIST 577 (24.1/s), ROWS 10611 (high=1001), ERR: 0/0/0, 7 sec
+INS 682669 (11078.9/s), DEL 34034 (17910.6/s), LIST 727 (26.0/s), ROWS 10761 (high=1001), ERR: 0/0/0, 8 sec
+INS 788532 (11029.9/s), DEL 39306 (17561.7/s), LIST 838 (26.3/s), ROWS 10872 (high=1001), ERR: 0/0/0, 9 sec
+INS 867115 (11149.0/s), DEL 43354 (17227.0/s), LIST 920 (25.7/s), ROWS 10954 (high=1001), ERR: 0/0/0, 10 sec
+```
+
+- same as above but 2s cache duration
+```
+INS 190323 (26336.1/s), DEL 9677 (29100.3/s), LIST 0 (NaN/s), ROWS 0 (high=0), ERR: 0/0/0, 1 sec
+INS 236398 (14905.4/s), DEL 11964 (31028.5/s), LIST 22 (6.0/s), ROWS 1022 (high=1001), ERR: 0/0/0, 2 sec
+INS 312597 (13882.3/s), DEL 15765 (35568.8/s), LIST 89 (11.5/s), ROWS 4105 (high=1001), ERR: 0/0/0, 3 sec
+INS 388713 (13141.7/s), DEL 19650 (24275.2/s), LIST 269 (22.5/s), ROWS 7305 (high=1001), ERR: 0/0/0, 4 sec
+INS 503034 (12819.9/s), DEL 25330 (18432.0/s), LIST 466 (29.2/s), ROWS 7504 (high=1001), ERR: 0/0/0, 5 sec
+INS 579206 (12728.1/s), DEL 29158 (20930.4/s), LIST 614 (30.8/s), ROWS 7652 (high=1001), ERR: 0/0/0, 6 sec
+INS 693397 (12561.7/s), DEL 34968 (24325.7/s), LIST 724 (30.3/s), ROWS 7762 (high=1001), ERR: 0/0/0, 7 sec
+INS 769597 (12476.3/s), DEL 38768 (18859.4/s), LIST 833 (29.9/s), ROWS 7871 (high=1001), ERR: 0/0/0, 8 sec
+INS 883866 (12436.4/s), DEL 44502 (21358.6/s), LIST 916 (28.7/s), ROWS 7954 (high=1001), ERR: 0/0/0, 9 sec
+INS 960038 (12403.7/s), DEL 48331 (20108.0/s), LIST 1009 (28.1/s), ROWS 8047 (high=1001), ERR: 0/0/0, 10 sec
+```
+
 ## Configs
 
 - `insertThread` - number of goroutine to insert

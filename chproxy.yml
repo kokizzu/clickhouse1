@@ -1,0 +1,40 @@
+server:
+  http:
+    listen_addr: ":9090"
+    #allowed_networks: ["0.0.0.0/0"]
+
+hack_me_please: true
+
+users:
+  - name: "default"
+    to_cluster: "cluster1"
+    to_user: "default"
+
+# by default each cluster has `default` user which can be overridden by section `users`
+clusters:
+  - name: "cluster1"
+    nodes: ["clickhouse1:8123"]
+
+caches:
+  - name: "shortterm"
+    mode: "file_system"
+    file_system:
+        dir: /tmp
+        max_size: 1GB
+    # Expiration time for cached responses.
+    expire: 2s
+    # DEPRECATED: default value equal to `max_execution_time` should be used.
+    #             New configuration parameter will be provided to disable the protection at will.
+    # When multiple requests with identical query simultaneously hit `chproxy`
+    # and there is no cached response for the query, then only a single
+    # request will be proxied to clickhouse. Other requests will wait
+    # for the cached response during this grace duration.
+    # This is known as protection from `thundering herd` problem.
+    #
+    # By default `grace_time` is 5s. Negative value disables the protection
+    # from `thundering herd` problem.
+    grace_time: 2s
+    # Maximum total size of request payload for caching. The default value
+    # is set to 1 Petabyte.
+    # The default value set so high is to allow users who do not use response size limitations virtually unlimited cache.
+    max_payload_size: 4MB

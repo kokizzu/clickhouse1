@@ -15,3 +15,10 @@ services:
       nofile:
         soft: 262144
         hard: 262144
+
+  chproxy1:
+    image: tacyuuhon/clickhouse-chproxy
+    ports:
+      - "9090:9090"
+    volumes:
+      - "./chproxy.yml:/opt/config.yml"
