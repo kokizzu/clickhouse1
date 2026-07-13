@@ -143,3 +143,13 @@ INS 930987 (11729.8/s), DEL 46557 (12736.5/s), LIST 947 (26.4/s), ROWS 6970 (hig
 - `stopAnywaySec` - stop anyway after n second all insert done
 - `debug` - throw panic on error
 - `clickhouse.WithStdAsync` if `useDriverAsync` or `wait_for_async_insert`
+
+## Maintenance Checklist
+
+- [x] Update the Go runtime directive to Go 1.26.5.
+- [x] Refresh ClickHouse driver, `ch-go`, and helper dependencies.
+- [x] Keep Docker compatibility metadata pinned to a fixed version in the selected module graph.
+- [x] Add Makefile targets for vulnerability checks and arbitrary commands.
+- [x] Run `make test`.
+- [x] Run `make verify-dependency-security`.
+- [x] Run `make vulncheck`; no reachable vulnerabilities were found.

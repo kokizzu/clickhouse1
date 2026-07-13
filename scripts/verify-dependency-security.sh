@@ -52,7 +52,7 @@ require_otel_not_vulnerable() {
   fi
 }
 
-require_absent github.com/docker/docker
+require_min github.com/docker/docker v28.5.2
 require_min github.com/docker/cli v29.3.1
 require_min github.com/gofiber/fiber/v2 v2.52.13
 require_min github.com/opencontainers/runc v1.3.6
